@@ -1,5 +1,25 @@
 import tkinter as tr
 from random import shuffle
+from tkinter.messagebox import showinfo
+
+colors = {
+    1: 'black',
+    2: 'orange',
+    3: 'blue',
+    4: 'red'
+}
+
+
+class Saper_Button(tr.Button):
+    def __init__(self, master, x, y, number=0, *args, **kwargs):
+        super(Saper_Button, self).__init__(master, *args, **kwargs)
+        self.y = y
+        self.x = x
+        self.number = number
+        self.is_mine = False
+        self.count_mine = 0
+        self.is_open = False
+
 
 class Saper:
     window = tr.Tk()
@@ -8,52 +28,72 @@ class Saper:
     mine = 10
     buttons = []
 
-    def __init__(self):
-        self.buttons = []
-        count = 1
-        for i in range(Saper.row):
-            temp = []
-            for j in range(Saper.col):
-                button = Saper_Button(Saper.window, x=i, y=j, number=count, width=3, font='Arial 13 bold')
-                temp.append(button)
-                count += 1
-            self.buttons.append(temp)
-
     def start(self):
         self.create_btn()
         self.insert_mine()
+        self.count_mines()
         Saper.window.mainloop()
 
+    def __init__(self):
+        for i in range(Saper.row + 2):
+            temp = []
+            for j in range(Saper.col + 2):
+                button = Saper_Button(Saper.window, x=i, y=j, width=3, font='Arial 14 bold')
+                button.config(command=lambda btn=button: self.click(btn))
+                temp.append(button)
+            Saper.buttons.append(temp)
+
+    def click(self, clicked_btn: Saper_Button):
+        if clicked_btn.is_mine:
+            clicked_btn.config(text="*", background='red', disabledforeground='black')
+            clicked_btn.is_open = True
+            for i in range(1, Saper.row + 1):
+                for j in range(1, Saper.col + 1):
+                    btn = self.buttons[i][j]
+                    if btn.is_mine:
+                        btn['text'] = '*'
+        else:
+            color = colors.get(clicked_btn.count_mine)
+            clicked_btn.config(text=clicked_btn.count_mine, disabledforeground=color)
+            clicked_btn.is_open = True
+        clicked_btn.config(state='disabled')
+        clicked_btn.config(relief=tr.SUNKEN)
+
     def create_btn(self):
-        for i in range(Saper.row):
-            for j in range(Saper.col):
+        count = 1
+        for i in range(1, Saper.row + 1):
+            for j in range(1, Saper.col + 1):
                 btn = self.buttons[i][j]
+                btn.number = count
                 btn.grid(row=i, column=j)
+                count += 1
+
+    def count_mines(self):
+        for i in range(1, Saper.row + 1):
+            for j in range(1, Saper.col + 1):
+                btn = self.buttons[i][j]
+                count_mine = 0
+                if not btn.is_mine:
+                    for x in [-1, 0, 1]:
+                        for y in [-1, 0, 1]:
+                            neighbor = self.buttons[i + x][j + y]
+                            if neighbor.is_mine:
+                                count_mine += 1
+                btn.count_mine = count_mine
 
     @staticmethod
     def place_of_mines():
         index_list = list(range(1, Saper.row * Saper.col + 1))
-        print(index_list)
         shuffle(index_list)
         return index_list[:Saper.mine]
 
     def insert_mine(self):
         index_mine = self.place_of_mines()
-        for btns in self.buttons:
-            for btn in btns:
+        for i in range(1, Saper.row + 1):
+            for j in range(1, Saper.col + 1):
+                btn = self.buttons[i][j]
                 if btn.number in index_mine:
-                    print(btn.number)
                     btn.is_mine = True
-
-
-class Saper_Button(tr.Button):
-
-    def __init__(self, master, x, y, number, *args, **kwargs):
-        super(Saper_Button, self).__init__(master, *args, **kwargs)
-        self.x = x
-        self.y = y
-        self.number = number
-        self.is_mine = False
 
 
 game = Saper()
