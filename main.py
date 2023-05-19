@@ -26,12 +26,13 @@ class Saper:
     row = 10
     col = 10
     mine = 10
+    total = row * col - mine
     buttons = []
+    game_over = False
+    first_click = True
 
     def start(self):
         self.create_btn()
-        self.insert_mine()
-        self.count_mines()
         Saper.window.mainloop()
 
     def __init__(self):
@@ -44,9 +45,25 @@ class Saper:
             Saper.buttons.append(temp)
 
     def click(self, clicked_btn: Saper_Button):
+
+        if Saper.game_over:
+            return
+
+        if Saper.first_click:
+            self.insert_mine(clicked_btn.number)
+            self.count_mines()
+            Saper.first_click = False
+
         if clicked_btn.is_mine:
             clicked_btn.config(text="*", background='red', disabledforeground='black')
             clicked_btn.is_open = True
+            Saper.total -= 1
+            if Saper.total == 0:
+                showinfo('Congratulations', 'You won!')
+                Saper.window.quit()
+
+            Saper.game_over = True
+            showinfo('Game over', 'Game over')
             for i in range(1, Saper.row + 1):
                 for j in range(1, Saper.col + 1):
                     btn = self.buttons[i][j]
@@ -54,8 +71,15 @@ class Saper:
                         btn['text'] = '*'
         else:
             color = colors.get(clicked_btn.count_mine)
-            clicked_btn.config(text=clicked_btn.count_mine, disabledforeground=color)
-            clicked_btn.is_open = True
+            if clicked_btn.count_mine:
+                clicked_btn.config(text=clicked_btn.count_mine, disabledforeground=color)
+                clicked_btn.is_open = True
+                Saper.total -= 1
+                if Saper.total == 0:
+                    showinfo('Congratulations', 'You won!')
+                    Saper.window.quit()
+            else:
+                self.first_search(clicked_btn)
         clicked_btn.config(state='disabled')
         clicked_btn.config(relief=tr.SUNKEN)
 
@@ -68,7 +92,35 @@ class Saper:
                 btn.grid(row=i, column=j)
                 count += 1
 
+    def first_search(self, btn: Saper_Button):
+        queue = [btn]
+        while queue:
+
+            current = queue.pop()
+            color = colors.get(current.count_mine)
+            if current.count_mine:
+                current.config(text=current.count_mine, disabledforeground=color)
+            else:
+                current.config(text='', disabledforeground=color)
+            current.config(state='disabled')
+            current.config(relief=tr.SUNKEN)
+            current.is_open = True
+            Saper.total -= 1
+            if Saper.total == 0:
+                showinfo('Congratulations', 'You won!')
+                Saper.window.quit()
+
+            if current.count_mine == 0:
+                dx, dy = current.x, current.y
+                for x in [-1, 0, 1]:
+                    for y in [-1, 0, 1]:
+                        next_btn = self.buttons[x + dx][y + dy]
+                        if not next_btn.is_open and 1 <= next_btn.x <= Saper.row and \
+                                1 <= next_btn.y <= Saper.col and next_btn not in queue:
+                            queue.append(next_btn)
+
     def count_mines(self):
+
         for i in range(1, Saper.row + 1):
             for j in range(1, Saper.col + 1):
                 btn = self.buttons[i][j]
@@ -82,13 +134,14 @@ class Saper:
                 btn.count_mine = count_mine
 
     @staticmethod
-    def place_of_mines():
+    def place_of_mines(exclude_num):
         index_list = list(range(1, Saper.row * Saper.col + 1))
+        index_list.remove(exclude_num)
         shuffle(index_list)
         return index_list[:Saper.mine]
 
-    def insert_mine(self):
-        index_mine = self.place_of_mines()
+    def insert_mine(self, number: int):
+        index_mine = self.place_of_mines(number)
         for i in range(1, Saper.row + 1):
             for j in range(1, Saper.col + 1):
                 btn = self.buttons[i][j]
